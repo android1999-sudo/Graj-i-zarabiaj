@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101827">
+<meta name="description" content="Graj i Zbieraj — darmowa mini-gra, punkty i wirtualne nagrody.">
+<title>Graj i Zbieraj</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#151f31;--line:#293750;--text:#f4f7fb;--muted:#a9b6ca;--green:#42d392;--gold:#ffd166}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#1a3150 0,var(--bg) 58%);color:var(--text);font:16px system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+main{width:min(900px,calc(100% - 28px));margin:auto;padding:26px 0 50px}
+header{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:22px}
+.brand{font-weight:900;font-size:30px;letter-spacing:-1px}.brand span{color:var(--green)}
+.pill{border:1px solid var(--line);background:#17243a;border-radius:99px;padding:9px 14px;color:var(--muted);font-size:13px}
+.hero{background:linear-gradient(135deg,#1d3d56,#18243a);border:1px solid #35506b;border-radius:24px;padding:25px;display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center}
+h1{font-size:clamp(28px,6vw,42px);line-height:1.08;margin:0 0 10px}.hero p{color:#c3d1e3;margin:0}
+.score{text-align:center;background:#0e1929;border:1px solid #49617a;border-radius:18px;padding:15px 22px;min-width:135px}.score strong{display:block;font-size:34px;color:var(--gold)}.score small,.muted{color:var(--muted)}
+.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;margin-top:18px}.card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px}
+h2{font-size:20px;margin:0 0 8px}.muted{font-size:14px}
+.gamebox{margin-top:16px;background:#0c1727;border:1px solid #2b405c;border-radius:16px;height:245px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+#target{position:absolute;width:66px;height:66px;border:0;border-radius:50%;background:linear-gradient(145deg,#ffe08a,#f5a623);font-size:32px;box-shadow:0 8px 28px #f6b93b55;cursor:pointer;display:none;touch-action:manipulation}
+#intro{text-align:center;padding:22px}.action{border:0;border-radius:12px;padding:12px 17px;background:var(--green);color:#062116;font-weight:800;font-size:15px;cursor:pointer}.action:disabled{opacity:.45}
+.controls{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}.timer{margin-left:auto;color:var(--gold);font-weight:800}
+.reward{display:flex;align-items:center;gap:12px;padding:13px 0;border-top:1px solid var(--line)}.emoji{font-size:27px;background:#202e43;border-radius:12px;padding:10px}.reward-info{flex:1}.reward-info b{display:block}.reward-info small{color:var(--muted)}
+.buy{background:#263b55;color:white;border:1px solid #3b5573;border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer}.buy:disabled{opacity:.4;cursor:not-allowed}
+.notice{margin-top:18px;padding:13px 15px;border:1px solid #4d4930;background:#282719;border-radius:14px;color:#e8dca9;font-size:13px;line-height:1.5}
+footer{text-align:center;color:#8493a9;font-size:12px;margin-top:24px}
+@media(max-width:680px){.hero{grid-template-columns:1fr}.score{display:flex;justify-content:center;gap:12px}.score strong{font-size:27px}.grid{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<main>
+<header><div class="brand">Graj <span>&</span> Zbieraj</div><div class="pill">Wersja startowa · darmowa gra</div></header>
+<section class="hero">
+<div><h1>Graj, zdobywaj punkty i odblokowuj bonusy!</h1><p>Łap gwiazdki, zbieraj punkty i wymieniaj je na wirtualne nagrody dostępne w grze.</p></div>
+<div class="score"><div><strong id="points">0</strong><small>Twoje punkty</small></div></div>
+</section>
+<div class="grid">
+<section class="card">
+<h2>⭐ Łap gwiazdki</h2><div class="muted">Klikaj gwiazdkę jak najwięcej razy w ciągu 30 sekund. Każde trafienie to 1 punkt.</div>
+<div class="gamebox" id="gamebox"><div id="intro"><div style="font-size:42px">🌟</div><b>Gotowy na wyzwanie?</b><p class="muted">Naciśnij „Rozpocznij grę”.</p></div><button id="target" aria-label="Złap gwiazdkę">⭐</button></div>
+<div class="controls"><button class="action" id="start">Rozpocznij grę</button><span class="timer" id="timer">Czas: 30 s</span></div>
+<p class="muted" id="message" aria-live="polite">Powodzenia!</p>
+</section>
+<section class="card">
+<h2>🎁 Sklep z nagrodami</h2><div class="muted">Odblokuj wirtualne dodatki za punkty.</div>
+<div class="reward"><div class="emoji">🧢</div><div class="reward-info"><b>Czapka gracza</b><small>50 punktów</small></div><button class="buy" data-cost="50" data-name="Czapka gracza">Odbierz</button></div>
+<div class="reward"><div class="emoji">💎</div><div class="reward-info"><b>Diamentowy status</b><small>150 punktów</small></div><button class="buy" data-cost="150" data-name="Diamentowy status">Odbierz</button></div>
+<div class="reward"><div class="emoji">👑</div><div class="reward-info"><b>Korona mistrza</b><small>300 punktów</small></div><button class="buy" data-cost="300" data-name="Korona mistrza">Odbierz</button></div>
+<p class="muted" id="shopMessage" aria-live="polite"></p>
+</section>
+</div>
+<div class="notice"><b>Ważne:</b> To wersja startowa. Punkty i nagrody są wirtualne i zapisywane lokalnie w przeglądarce. Nie są pieniędzmi i nie podlegają wypłacie. Aplikacja nie zawiera jeszcze reklam ani kont użytkowników.</div>
+<footer>Graj i Zbieraj · Wersja demonstracyjna</footer>
+</main>
+<script>
+(()=> {
+const $=id=>document.getElementById(id);
+let points=Math.max(0,Number(localStorage.getItem('gz_points')||0));
+let owned=JSON.parse(localStorage.getItem('gz_owned')||'[]');
+let active=false,remaining=30,clock=null,move=null;
+function render(){
+ $('points').textContent=points;
+ document.querySelectorAll('.buy').forEach(b=>{
+  const name=b.dataset.name;
+  b.disabled=owned.includes(name)||points<Number(b.dataset.cost);
+  b.textContent=owned.includes(name)?'Odebrano':'Odbierz';
+ });
+}
+function save(){localStorage.setItem('gz_points',String(points));localStorage.setItem('gz_owned',JSON.stringify(owned));render();}
+function place(){
+ const box=$('gamebox'),t=$('target');
+ t.style.left=(8+Math.random()*Math.max(0,box.clientWidth-82))+'px';
+ t.style.top=(8+Math.random()*Math.max(0,box.clientHeight-82))+'px';
+}
+function finish(){
+ active=false;clearInterval(clock);clearInterval(move);
+ $('target').style.display='none';$('intro').style.display='block';
+ $('intro').innerHTML='<div style="font-size:42px">🏁</div><b>Koniec rundy!</b><p class="muted">Punkty zostały zapisane.</p>';
+ $('start').disabled=false;$('start').textContent='Zagraj ponownie';
+ $('timer').textContent='Czas: 0 s';$('message').textContent='Możesz zagrać ponownie.';render();
+}
+$('start').addEventListener('click',()=>{
+ if(active)return;active=true;remaining=30;$('start').disabled=true;
+ $('intro').style.display='none';$('target').style.display='block';
+ $('message').textContent='Łap gwiazdkę!';place();
+ clock=setInterval(()=>{remaining--;$('timer').textContent='Czas: '+remaining+' s';if(remaining<=0)finish();},1000);
+ move=setInterval(place,950);
+});
+$('target').addEventListener('click',()=>{if(!active)return;points++;save();place();$('message').textContent='+1 punkt! Dobra robota.';});
+document.querySelectorAll('.buy').forEach(b=>b.addEventListener('click',()=>{
+ const cost=Number(b.dataset.cost),name=b.dataset.name;
+ if(owned.includes(name)||points<cost)return;
+ points-=cost;owned.push(name);save();$('shopMessage').textContent='Odblokowano: '+name+'!';
+}));
+render();
+})();
+</script>
+</body>
+</html>
