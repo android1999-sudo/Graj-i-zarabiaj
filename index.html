@@ -5,32 +5,46 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#101827">
-<title>Graj i Zbieraj</title>
+<title>Graj i Zarabiaj</title>
 <style>
 *{box-sizing:border-box}
-body{font-family:Arial;background:#101827;color:white;text-align:center;padding:20px;margin:0}
-main{max-width:460px;margin:auto}
-section{background:#1c2b40;padding:20px;border-radius:14px;margin:16px 0}
-input,button{width:100%;padding:13px;margin:7px 0;border:0;border-radius:8px;font-size:16px}
+body{font-family:Arial,sans-serif;background:#101827;color:white;margin:0;padding:16px;text-align:center}
+main{max-width:600px;margin:auto}
+section{background:#1c2b40;padding:18px;border-radius:14px;margin:14px 0}
+input,button{width:100%;padding:13px;margin:6px 0;border:0;border-radius:8px;font-size:16px}
 input{background:white;color:#172033}
-button{background:#42d392;color:#102018;font-weight:bold}
+button{background:#42d392;color:#102018;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
 .secondary{background:#34465f;color:white}
+.game-button{background:#34465f;color:white}
 #status{color:#ffd166;overflow-wrap:anywhere}
-#points{font-size:42px;color:#42d392;font-weight:bold}
-.small{color:#b9c7d8;font-size:14px}
-.hidden{display:none}
+#points{font-size:40px;color:#42d392;font-weight:bold;margin:8px}
+.small{color:#b9c7d8;font-size:13px;line-height:1.5}
+.hidden{display:none!important}
+.game{display:none}
+.game.active{display:block}
+.score{font-size:24px;color:#ffd166;font-weight:bold}
+#clickTarget{font-size:22px;padding:25px}
+#question{font-size:20px;min-height:55px}
+.answer{background:#34465f;color:white}
+#memoryBoard{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.memory-card{height:65px;font-size:25px;background:#34465f;color:white;margin:0}
+.memory-card.open{background:#42d392;color:#102018}
+nav{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+nav button{font-size:14px;padding:12px 5px}
 </style>
 </head>
 <body>
 <main>
-<h1>🎮 Graj i Zbieraj</h1>
+<h1>🎮 Graj i Zarabiaj</h1>
+<p class="small">Graj, zdobywaj doświadczenie i sprawdzaj swoje wyniki.</p>
 
 <section id="authPanel">
 <h2>Logowanie i rejestracja</h2>
 <input id="email" type="email" placeholder="Adres e-mail">
-<input id="password" type="password" placeholder="Hasło">
+<input id="password" type="password" placeholder="Hasło – minimum 6 znaków">
 <button id="register">Zarejestruj się</button>
-<button id="login">Zaloguj się</button>
+<button id="login" class="secondary">Zaloguj się</button>
 </section>
 
 <section id="accountPanel" class="hidden">
@@ -43,7 +57,52 @@ button{background:#42d392;color:#102018;font-weight:bold}
 </section>
 
 <p id="status">Sprawdzanie konta...</p>
-<p class="small">Punkty są przyznawane po weryfikacji wyniku przez serwer.</p>
+
+<section>
+<h2>🎯 Wybierz grę</h2>
+<nav>
+<button onclick="showGame('clicker')">Klikacz</button>
+<button onclick="showGame('quiz')">Quiz</button>
+<button onclick="showGame('memory')">Pamięć</button>
+</nav>
+</section>
+
+<section id="clicker" class="game">
+<h2>🖱️ Klikacz</h2>
+<p>Klikaj jak najwięcej razy w ciągu 15 sekund.</p>
+<p class="score" id="clickScore">0</p>
+<p id="clickTime">Czas: 15 s</p>
+<button id="clickStart">Rozpocznij grę</button>
+<button id="clickTarget" disabled>KLIKNIJ!</button>
+<p id="clickResult" class="small"></p>
+</section>
+
+<section id="quiz" class="game">
+<h2>🧠 Quiz</h2>
+<p id="question">Naciśnij rozpocznij, aby zagrać.</p>
+<div id="answers"></div>
+<p class="score" id="quizScore">Wynik: 0</p>
+<button id="quizStart">Rozpocznij quiz</button>
+<p id="quizResult" class="small"></p>
+</section>
+
+<section id="memory" class="game">
+<h2>🃏 Pamięć</h2>
+<p>Znajdź wszystkie pasujące pary.</p>
+<p id="memoryMoves">Ruchy: 0</p>
+<div id="memoryBoard"></div>
+<button id="memoryStart">Nowa gra</button>
+<p id="memoryResult" class="small"></p>
+</section>
+
+<section>
+<h3>Informacja o punktach</h3>
+<p class="small">
+Wyniki gier są obecnie treningowe i nie zwiększają salda.
+Punkty będą przyznawane dopiero po wdrożeniu weryfikacji serwerowej.
+Punkty zdobywane za reklamy AdMob nie mogą być wymieniane na gotówkę.
+</p>
+</section>
 </main>
 
 <script type="module">
@@ -55,98 +114,192 @@ const supabase=createClient(
 'sb_publishable_jOYQmwgBgJBCLCtC_HjnZQ_RxPmZ8kD'
 );
 
-const authPanel=document.getElementById('authPanel');
-const accountPanel=document.getElementById('accountPanel');
-const status=document.getElementById('status');
-const points=document.getElementById('points');
+const $=id=>document.getElementById(id);
+const authPanel=$('authPanel');
+const accountPanel=$('accountPanel');
+const status=$('status');
 
 function signedOut(message){
  authPanel.classList.remove('hidden');
  accountPanel.classList.add('hidden');
- points.textContent='0';
+ $('points').textContent='0';
  status.textContent=message;
 }
 
 async function loadAccount(){
  const {data:{user},error:userError}=await supabase.auth.getUser();
-
  if(userError||!user){
   signedOut('Nie jesteś zalogowany.');
   return;
  }
-
  authPanel.classList.add('hidden');
  accountPanel.classList.remove('hidden');
- document.getElementById('userEmail').textContent=user.email||'';
+ $('userEmail').textContent=user.email||'';
  status.textContent='Zalogowano.';
-
- const {data,error}=await supabase
- .from('wallets')
- .select('points_balance')
- .eq('user_id',user.id)
- .single();
-
+ const {data,error}=await supabase.from('wallets')
+  .select('points_balance').eq('user_id',user.id).single();
  if(error){
   status.textContent='Błąd salda: '+error.message;
   return;
  }
-
- points.textContent=String(data.points_balance??0);
+ $('points').textContent=String(data.points_balance??0);
 }
 
-document.getElementById('register').onclick=async()=>{
- const email=document.getElementById('email').value.trim();
- const password=document.getElementById('password').value;
-
+$('register').onclick=async()=>{
+ const email=$('email').value.trim();
+ const password=$('password').value;
  if(!email||password.length<6){
   status.textContent='Podaj e-mail i hasło minimum 6 znaków.';
   return;
  }
-
  const {error}=await supabase.auth.signUp({
   email,password,
-  options:{
-   emailRedirectTo:'https://android1999-sudo.github.io/Graj-i-zarabiaj/'
-  }
+  options:{emailRedirectTo:'https://android1999-sudo.github.io/Graj-i-zarabiaj/'}
  });
-
- status.textContent=error?error.message:
- 'Rejestracja wysłana. Sprawdź pocztę.';
+ status.textContent=error?error.message:'Rejestracja wysłana. Sprawdź pocztę.';
 };
 
-document.getElementById('login').onclick=async()=>{
- const email=document.getElementById('email').value.trim();
- const password=document.getElementById('password').value;
-
- const {error}=await supabase.auth.signInWithPassword({
-  email,password
- });
-
- if(error){
-  status.textContent=error.message;
-  return;
- }
-
+$('login').onclick=async()=>{
+ const email=$('email').value.trim();
+ const password=$('password').value;
+ const {error}=await supabase.auth.signInWithPassword({email,password});
+ if(error){status.textContent=error.message;return;}
  await loadAccount();
 };
 
-document.getElementById('refresh').onclick=loadAccount;
-
-document.getElementById('logout').onclick=async()=>{
+$('refresh').onclick=loadAccount;
+$('logout').onclick=async()=>{
  const {error}=await supabase.auth.signOut();
- if(error){
-  status.textContent=error.message;
-  return;
- }
+ if(error){status.textContent=error.message;return;}
  signedOut('Wylogowano.');
 };
 
 supabase.auth.onAuthStateChange((event,session)=>{
- if(session) setTimeout(loadAccount,0);
- else if(event==='SIGNED_OUT') signedOut('Wylogowano.');
+ if(session)setTimeout(loadAccount,0);
+ else if(event==='SIGNED_OUT')signedOut('Wylogowano.');
 });
-
 loadAccount();
+
+window.showGame=function(id){
+ document.querySelectorAll('.game').forEach(g=>g.classList.remove('active'));
+ $(id).classList.add('active');
+};
+
+// KLIKACZ
+let clicks=0,clickSeconds=15,clickTimer=null,clickRunning=false;
+$('clickStart').onclick=()=>{
+ if(clickRunning)return;
+ clicks=0;clickSeconds=15;clickRunning=true;
+ $('clickScore').textContent='0';
+ $('clickTime').textContent='Czas: 15 s';
+ $('clickResult').textContent='';
+ $('clickTarget').disabled=false;
+ $('clickStart').disabled=true;
+ clickTimer=setInterval(()=>{
+  clickSeconds--;
+  $('clickTime').textContent='Czas: '+clickSeconds+' s';
+  if(clickSeconds<=0){
+   clearInterval(clickTimer);
+   clickRunning=false;
+   $('clickTarget').disabled=true;
+   $('clickStart').disabled=false;
+   $('clickResult').textContent='Koniec! Twój wynik: '+clicks+' kliknięć.';
+  }
+ },1000);
+};
+$('clickTarget').onclick=()=>{
+ if(!clickRunning)return;
+ clicks++;
+ $('clickScore').textContent=clicks;
+};
+
+// QUIZ
+const questions=[
+ {q:'Ile wynosi 5 + 7?',a:['10','12','14'],c:1},
+ {q:'Jaka jest stolica Polski?',a:['Kraków','Warszawa','Gdańsk'],c:1},
+ {q:'Ile dni ma tydzień?',a:['5','6','7'],c:2},
+ {q:'Która planeta jest najbliżej Słońca?',a:['Merkury','Mars','Wenus'],c:0},
+ {q:'Ile boków ma trójkąt?',a:['2','3','4'],c:1}
+];
+let quizIndex=0,quizPoints=0,quizActive=false;
+function nextQuestion(){
+ if(quizIndex>=questions.length){
+  quizActive=false;
+  $('question').textContent='Quiz zakończony!';
+  $('answers').innerHTML='';
+  $('quizResult').textContent='Twój wynik: '+quizPoints+' z '+questions.length+'.';
+  $('quizStart').disabled=false;
+  return;
+ }
+ const q=questions[quizIndex];
+ $('question').textContent=q.q;
+ $('answers').innerHTML='';
+ q.a.forEach((answer,index)=>{
+  const b=document.createElement('button');
+  b.className='answer';
+  b.textContent=answer;
+  b.onclick=()=>{
+   if(!quizActive)return;
+   if(index===q.c)quizPoints++;
+   quizIndex++;
+   $('quizScore').textContent='Wynik: '+quizPoints;
+   nextQuestion();
+  };
+  $('answers').appendChild(b);
+ });
+}
+$('quizStart').onclick=()=>{
+ quizIndex=0;quizPoints=0;quizActive=true;
+ $('quizScore').textContent='Wynik: 0';
+ $('quizResult').textContent='';
+ $('quizStart').disabled=true;
+ nextQuestion();
+};
+
+// PAMIĘĆ
+const symbols=['🍎','🚗','⭐','🐱','⚽','🌈','🎁','🍀'];
+let memoryValues=[],firstCard=null,lockBoard=false,matches=0,moves=0;
+function startMemory(){
+ memoryValues=[...symbols,...symbols].sort(()=>Math.random()-.5);
+ firstCard=null;lockBoard=false;matches=0;moves=0;
+ $('memoryMoves').textContent='Ruchy: 0';
+ $('memoryResult').textContent='';
+ $('memoryBoard').innerHTML='';
+ memoryValues.forEach((symbol,index)=>{
+  const b=document.createElement('button');
+  b.className='memory-card';
+  b.textContent='?';
+  b.dataset.symbol=symbol;
+  b.onclick=()=>flipCard(b);
+  $('memoryBoard').appendChild(b);
+ });
+}
+function flipCard(card){
+ if(lockBoard||card.classList.contains('open'))return;
+ card.classList.add('open');
+ card.textContent=card.dataset.symbol;
+ if(!firstCard){firstCard=card;return;}
+ moves++;
+ $('memoryMoves').textContent='Ruchy: '+moves;
+ if(firstCard.dataset.symbol===card.dataset.symbol){
+  matches++;
+  firstCard=null;
+  if(matches===symbols.length){
+   $('memoryResult').textContent='Brawo! Wszystkie pary znalezione w '+moves+' ruchach.';
+  }
+ }else{
+  lockBoard=true;
+  const previous=firstCard;
+  firstCard=null;
+  setTimeout(()=>{
+   previous.classList.remove('open');previous.textContent='?';
+   card.classList.remove('open');card.textContent='?';
+   lockBoard=false;
+  },800);
+ }
+}
+$('memoryStart').onclick=startMemory;
+startMemory();
 </script>
 </body>
 </html>
