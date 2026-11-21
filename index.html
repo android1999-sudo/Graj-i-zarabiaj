@@ -186,54 +186,66 @@ window.showGame=function(id){
 };
 
 // KLIKACZ
-let clicks=0,clickSeconds=15,clickTimer=null,clickRunning=false;
-$('clickStart').onclick=async()=>{
- let clickSessionId = null;
- 
- if(clickRunning)return;
 
- clickRunning=true;
- $('clickStart').disabled=true;
- $('clickResult').textContent='Łączenie z serwerem...';
+// KLIKACZ
+let clicks = 0;
+let clickSeconds = 30;
+let clickTimer = null;
+let clickRunning = false;
 
- const {data,error}=await supabase.functions.invoke(
-  'gz-award-points',
-  {body:{action:'start',game_code:'clicker'}}
- );
+$('clickStart').onclick = async () => {
+  let clickSessionId = null;
 
- if(error || !data?.success || !data?.session?.id){
-  clickRunning=false;
-  $('clickStart').disabled=false;
-  $('clickResult').textContent='Nie udało się rozpocząć gry. Spróbuj ponownie.';
-  return;
- }
+  if (clickRunning) return;
 
- clickSessionId=data.session.id;
- clicks=0;
- clickSeconds=15;
- $('clickScore').textContent='0';
- $('clickTime').textContent='Czas: 15 s';
- $('clickResult').textContent='';
- $('clickTarget').disabled=false;
+  clickRunning = true;
+  $('clickStart').disabled = true;
+  $('clickResult').textContent = 'Łączenie z serwerem...';
 
- clickTimer=setInterval(()=>{
-  clickSeconds--;
-  $('clickTime').textContent='Czas: '+clickSeconds+' s';
+  const { data, error } = await supabase.functions.invoke(
+    'gz-award-points',
+    { body: { action: 'start', game_code: 'clicker' } }
+  );
 
-  if(clickSeconds<=0){
-   clearInterval(clickTimer);
-   clickRunning=false;
-   $('clickTarget').disabled=true;
-   $('clickStart').disabled=false;
-   $('clickResult').textContent='Koniec! Twój wynik: '+clicks+' kliknięć.';
+  if (error || !data?.success || !data?.session?.id) {
+    clickRunning = false;
+    $('clickStart').disabled = false;
+    $('clickResult').textContent =
+      'Nie udało się rozpocząć gry. Spróbuj ponownie.';
+    return;
   }
- },1000);
+
+  clickSessionId = data.session.id;
+  clicks = 0;
+  clickSeconds = 30;
+
+  $('clickScore').textContent = '0';
+  $('clickTime').textContent = 'Czas: 30 s';
+  $('clickResult').textContent = '';
+  $('clickTarget').disabled = false;
+
+  clickTimer = setInterval(() => {
+    clickSeconds--;
+    $('clickTime').textContent = 'Czas: ' + clickSeconds + ' s';
+
+    if (clickSeconds <= 0) {
+      clearInterval(clickTimer);
+      clickRunning = false;
+      $('clickTarget').disabled = true;
+      $('clickStart').disabled = false;
+      $('clickResult').textContent =
+        'Koniec! Twój wynik: ' + clicks + ' kliknięć.';
+    }
+  }, 1000);
 };
-$('clickTarget').onclick=()=>{
- if(!clickRunning)return;
- clicks++;
- $('clickScore').textContent=clicks;
+
+$('clickTarget').onclick = () => {
+  if (!clickRunning) return;
+
+  clicks++;
+  $('clickScore').textContent = clicks;
 };
+
 
 // QUIZ
 const questions=[
