@@ -185,7 +185,6 @@ window.showGame=function(id){
  $(id).classList.add('active');
 };
 
-// KLIKACZ
 
 // KLIKACZ
 let clicks = 0;
@@ -194,10 +193,7 @@ let clickTimer = null;
 let clickRunning = false;
 
 $('clickStart').onclick = async () => {
-  let clickSessionId = null;
-
   if (clickRunning) return;
-
   clickRunning = true;
   $('clickStart').disabled = true;
   $('clickResult').textContent = 'Łączenie z serwerem...';
@@ -215,16 +211,15 @@ $('clickStart').onclick = async () => {
     return;
   }
 
-  clickSessionId = data.session.id;
+  const clickSessionId = data.session.id;
   clicks = 0;
   clickSeconds = 30;
-
   $('clickScore').textContent = '0';
   $('clickTime').textContent = 'Czas: 30 s';
   $('clickResult').textContent = '';
   $('clickTarget').disabled = false;
 
-  clickTimer = setInterval(() => {
+  clickTimer = setInterval(async () => {
     clickSeconds--;
     $('clickTime').textContent = 'Czas: ' + clickSeconds + ' s';
 
@@ -232,14 +227,39 @@ $('clickStart').onclick = async () => {
       clearInterval(clickTimer);
       clickRunning = false;
       $('clickTarget').disabled = true;
+      $('clickStart').disabled = true;
+      $('clickResult').textContent = 'Wysyłanie wyniku do sprawdzenia...';
+
+      const { data: finishData, error: finishError } =
+        await supabase.functions.invoke('gz-award-points', {
+          body: {
+            action: 'finish',
+            session_id: clickSessionId,
+            score: clicks
+          }
+        });
+
       $('clickStart').disabled = false;
+
+      if (finishError || !finishData?.success) {
+        $('clickResult').textContent =
+          finishData?.error || 'Nie udało się wysłać wyniku.';
+        return;
+      }
+
       $('clickResult').textContent =
-        'Koniec! Twój wynik: ' + clicks + ' kliknięć.';
+        'Wynik: ' + clicks + ' kliknięć. ' +
+        (finishData.message || 'Oczekuje na weryfikację.');
     }
   }, 1000);
 };
 
 $('clickTarget').onclick = () => {
+  if (!clickRunning) return;
+  clicks++;
+  $('clickScore').textContent = clicks;
+};
+
   if (!clickRunning) return;
 
   clicks++;
