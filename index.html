@@ -299,7 +299,51 @@ function flipCard(card){
  }
 }
 $('memoryStart').onclick=startMemory;
-startMemory();(async () => {
+startMemory();function showPasswordRecovery() {
+  if ($('newPasswordBox')) return;
+
+  const box = document.createElement('div');
+  box.id = 'newPasswordBox';
+
+  const heading = document.createElement('h3');
+  heading.textContent = 'Ustaw nowe hasło';
+
+  const field = document.createElement('input');
+  field.type = 'password';
+  field.placeholder = 'Nowe hasło (minimum 6 znaków)';
+  field.autocomplete = 'new-password';
+
+  const button = document.createElement('button');
+  button.textContent = 'Zapisz nowe hasło';
+
+  button.onclick = async () => {
+    if (field.value.length < 6) {
+      status.textContent = 'Hasło musi mieć minimum 6 znaków.';
+      return;
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      password: field.value
+    });
+
+    if (error) {
+      status.textContent = 'Błąd: ' + error.message;
+      return;
+    }
+
+    box.remove();
+    status.textContent = 'Nowe hasło zostało zapisane.';
+  };
+
+  box.append(heading, field, button);
+  accountPanel.prepend(box);
+}
+
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    setTimeout(showPasswordRecovery, 0);
+  }
+});(async () => {
   const { data: { session } } = await supabase.auth.getSession();
 
   if (!session) return;
