@@ -187,9 +187,9 @@ window.showGame=function(id){
 
 // KLIKACZ
 let clicks=0,clickSeconds=15,clickTimer=null,clickRunning=false;
-$('clickStart').onclick=()=>{
+$('clickStart').onclick=async()=>{
  let clickSessionId = null;
-
+ 
  if(clickRunning)return;
 
  clickRunning=true;
