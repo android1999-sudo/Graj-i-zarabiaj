@@ -299,7 +299,20 @@ function flipCard(card){
  }
 }
 $('memoryStart').onclick=startMemory;
-startMemory();
+startMemory();(async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) return;
+
+  const { data, error } = await supabase.functions.invoke(
+    'gz-award-points',
+    { body: {} }
+  );
+
+  status.textContent = error
+    ? 'Test funkcji nieudany: ' + error.message
+    : 'Test funkcji działa: ' + data.message;
+})();
 </script>
 </body>
 </html>
