@@ -188,16 +188,39 @@ window.showGame=function(id){
 // KLIKACZ
 let clicks=0,clickSeconds=15,clickTimer=null,clickRunning=false;
 $('clickStart').onclick=()=>{
+ let clickSessionId = null;
+
+$('clickStart').onclick = async () => {
  if(clickRunning)return;
- clicks=0;clickSeconds=15;clickRunning=true;
+
+ clickRunning=true;
+ $('clickStart').disabled=true;
+ $('clickResult').textContent='Łączenie z serwerem...';
+
+ const {data,error}=await supabase.functions.invoke(
+  'gz-award-points',
+  {body:{action:'start',game_code:'clicker'}}
+ );
+
+ if(error || !data?.success || !data?.session?.id){
+  clickRunning=false;
+  $('clickStart').disabled=false;
+  $('clickResult').textContent='Nie udało się rozpocząć gry. Spróbuj ponownie.';
+  return;
+ }
+
+ clickSessionId=data.session.id;
+ clicks=0;
+ clickSeconds=15;
  $('clickScore').textContent='0';
  $('clickTime').textContent='Czas: 15 s';
  $('clickResult').textContent='';
  $('clickTarget').disabled=false;
- $('clickStart').disabled=true;
+
  clickTimer=setInterval(()=>{
   clickSeconds--;
   $('clickTime').textContent='Czas: '+clickSeconds+' s';
+
   if(clickSeconds<=0){
    clearInterval(clickTimer);
    clickRunning=false;
